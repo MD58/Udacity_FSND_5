@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------#
 # Imports
 # ----------------------------------------------------------------------------#
@@ -69,8 +71,14 @@ class Actor(db.Model):
 
     # For age: I'm adding date of birth,
     # and returning the calculated age in the format method.
-    def __init__(self, name,
-                 gender, date_of_birth):
+
+    def __init__
+    (
+        self,
+        name,
+        gender,
+        date_of_birth
+    ):
         self.name = name
         self.gender = gender
         self.date_of_birth = date_of_birth
@@ -88,18 +96,15 @@ class Actor(db.Model):
 
     def get_age(self):
         today = date.today()
-        return today.year - self.date_of_birth.year - (
-          (today.month, today.day) <
-          (self.date_of_birth.month, self.date_of_birth.day)
-          )
+        return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
 
     def format(self):
         return {
             'id': self.id,
             'name': self.name,
             'gender': self.gender,
-            'age': self.get_age()
-        }
+            'age': self.get_age(),
+            }
 
 
 class MovieActor(db.Model):
@@ -134,68 +139,54 @@ def get_movies(payload):
 
 @app.route('/movies/<int:id>', methods=['DELETE'])
 @requires_auth('delete:movies')
-def delete_movie(id, payload):
-    try:
-        movie = Movie.query.filter(Movie.id == id).first()
+def delete_movie(payload, id):
+    movie = Movie.query.filter(Movie.id == id).first()
 
-        if movie is None:
-            abort(404)
+    if movie is None:
+        abort(404)
 
-        movie.delete()
+    movie.delete()
 
-        return (jsonify({'success': True, 'delete': id}), 200)
-    except:
-
-        abort(500)
+    return (jsonify({'success': True, 'delete': id}), 200)
 
 
 @app.route('/movies', methods=['POST'])
 @requires_auth('post:movies')
 def create_movie(payload):
-    try:
-        body = request.get_json()
-        title = body.get('title', None)
-        release_date = body.get('release_date', None)
+    body = request.get_json()
+    title = body.get('title', None)
+    release_date = body.get('release_date', None)
 
-        if title is None:
-            abort(400)
+    if title is None:
+        abort(400)
 
-        movie = Movie(title, release_date)
-        movie.insert()
+    movie = Movie(title, release_date)
+    movie.insert()
 
-        return (jsonify({'success': True, 'movie': movie.format()}),
-                200)
-    except:
-
-        abort(500)
+    return (jsonify({'success': True, 'movie': movie.format()}), 200)
 
 
 @app.route('/movies/<int:id>', methods=['PATCH'])
 @requires_auth('patch:movies')
-def update_movie(id, payload):
-    try:
-        movie = Movie.query.filter(Movie.id == id).first()
+def update_movie(payload, id):
+    movie = Movie.query.filter(Movie.id == id).first()
 
-        if movie is None:
-            abort(404)
+    if movie is None:
+        abort(404)
 
-        body = request.get_json()
-        title = body.get('title', None)
-        release_date = body.get('release_date', None)
+    body = request.get_json()
+    title = body.get('title', None)
+    release_date = body.get('release_date', None)
 
-        if title is None:
-            abort(400)
+    if title is None:
+        abort(400)
 
-        movie.title = title
-        movie.release_date = release_date
+    movie.title = title
+    movie.release_date = release_date
 
-        movie.update()
+    movie.update()
 
-        return (jsonify({'success': True, 'movie': movie.format()}),
-                200)
-    except:
-
-        abort(500)
+    return (jsonify({'success': True, 'movie': movie.format()}), 200)
 
 
 #  Actors
@@ -217,71 +208,57 @@ def get_actors(payload):
 
 @app.route('/actors/<int:id>', methods=['DELETE'])
 @requires_auth('delete:actors')
-def delete_actor(id, payload):
-    try:
-        actor = Actor.query.filter(Actor.id == id).first()
+def delete_actor(payload, id):
+    actor = Actor.query.filter(Actor.id == id).first()
 
-        if actor is None:
-            abort(404)
+    if actor is None:
+        abort(404)
 
-        actor.delete()
+    actor.delete()
 
-        return (jsonify({'success': True, 'delete': id}), 200)
-    except:
-
-        abort(500)
+    return (jsonify({'success': True, 'delete': id}), 200)
 
 
 @app.route('/actors', methods=['POST'])
 @requires_auth('post:actors')
 def create_actor(payload):
-    try:
-        body = request.get_json()
-        name = body.get('name', None)
-        gender = body.get('gender', None)
-        date_of_birth = body.get('date_of_birth', None)
+    body = request.get_json()
+    name = body.get('name', None)
+    gender = body.get('gender', None)
+    date_of_birth = body.get('date_of_birth', None)
 
-        if name is None or gender is None or date_of_birth is None:
-            abort(400)
+    if name is None or gender is None or date_of_birth is None:
+        abort(400)
 
-        actor = Actor(name, gender, date_of_birth)
-        actor.insert()
+    actor = Actor(name, gender, date_of_birth)
+    actor.insert()
 
-        return (jsonify({'success': True, 'actor': actor.format()}),
-                200)
-    except:
-
-        abort(500)
+    return (jsonify({'success': True, 'actor': actor.format()}), 200)
 
 
 @app.route('/actors/<int:id>', methods=['PATCH'])
 @requires_auth('patch:actors')
-def update_actor(id, payload):
-    try:
-        actor = Actor.query.filter(Actor.id == id).first()
+def update_actor(payload, id):
+    actor = Actor.query.filter(Actor.id == id).first()
 
-        if actor is None:
-            abort(404)
+    if actor is None:
+        abort(404)
 
-        body = request.get_json()
-        name = body.get('name', None)
-        gender = body.get('gender', None)
-        date_of_birth = body.get('date_of_birth', None)
+    body = request.get_json()
+    name = body.get('name', None)
+    gender = body.get('gender', None)
+    date_of_birth = body.get('date_of_birth', None)
 
-        if name is None or gender is None or date_of_birth is None:
-            abort(400)
+    if name is None or gender is None or date_of_birth is None:
+        abort(400)
 
-        actor.title = name
-        actor.gender = gender
-        actor.date_of_birth = date_of_birth
+    actor.title = name
+    actor.gender = gender
+    actor.date_of_birth = date_of_birth
 
-        actor.update()
+    actor.update()
 
-        return (jsonify({'success': True, 'actor': actor.format()}),
-                200)
-    except:
-
-        abort(500)
+    return (jsonify({'success': True, 'actor': actor.format()}), 200)
 
 # ----------------------------------------------------------------------------#
 # Launch.

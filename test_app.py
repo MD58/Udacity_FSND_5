@@ -1,177 +1,293 @@
-# import os
-# import unittest
-# import json
-# from flask_sqlalchemy import SQLAlchemy
+import os
+import unittest
+import json
+from flask_sqlalchemy import SQLAlchemy
+from app import app, Movie, Actor
 
-# from app import create_app
-# from models import setup_db, Question, Category
-
-
-# class TriviaTestCase(unittest.TestCase):
-#     """This class represents the trivia test case"""
-
-#     def setUp(self):
-#         """Define test variables and initialize app."""
-#         self.app = create_app()
-#         self.client = self.app.test_client
-#         self.database_name = "trivia_test"
-#         self.database_path = "postgres://{}{}/{}".format('postgres:123456@','localhost:5432', self.database_name)
-#         setup_db(self.app, self.database_path)
-
-#         # binds the app to the current context
-#         with self.app.app_context():
-#             self.db = SQLAlchemy()
-#             self.db.init_app(self.app)
-#             # create all tables
-#             self.db.create_all()
-    
-#     def tearDown(self):
-#         """Executed after reach test"""
-#         pass
-
-     
-# # /* --------------------------------------------------- Questions - Get --------------------------------------------------- */  
-    
-#     def test_get_paginated_questions(self):
-#         res = self.client().get('/api/questions')
-#         data = json.loads(res.data)
-
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)
-#         self.assertTrue(data['total_questions'])
-#         self.assertTrue(len(data['questions']))
-    
-    
-#     def test_404_sent_requesting_beyond_valid_page(self):
-#         res = self.client().get('/questions?page=1000')
-#         data = json.loads(res.data)
-
-#         self.assertEqual(res.status_code, 404)
-#         self.assertEqual(data['success'], False)
-#         self.assertEqual(data['message'], 'resource not found')
-
-# # /* ------------------------------------------------- Questions - Search ------------------------------------------------- */  
-
-#     def test_search_questions(self):
-#         searchTerm = "actor"
-#         res = self.client().post('/api/questions', json={"searchTerm" : searchTerm})
-#         data = json.loads(res.data)
-
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)
-#         self.assertEqual(data['searchTerm'], searchTerm)
-#         self.assertTrue(data['total_questions'])
-#         self.assertTrue(len(data['questions']))
+ASSISTANT_TOKEN = os.environ['ASSISTANT_TOKEN']
+DIRECTOR_TOKEN = os.environ['DIRECTOR_TOKEN']
+PRODUCER_TOKEN = os.environ['PRODUCER_TOKEN']
 
 
-#     def test_search_questions_no_result(self):
-#         searchTerm = "TESTING_NO_RESULT"
-#         res = self.client().post('/api/questions', json={"searchTerm" : searchTerm})
-#         data = json.loads(res.data)
-
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)
-#         self.assertEqual(data['searchTerm'], searchTerm)
-#         self.assertEqual(data['total_questions'], 0)
-#         self.assertFalse(data['questions'])        
-
-# # /* ------------------------------------------------- Questions - Create ------------------------------------------------- */  
-
-#     def test_create_question(self):
-#         question = {
-#             "question" : "Test1",
-#             "answer" : "Test1",
-#             "category" : "1",
-#             "difficulty" : "1"
-#         }
-
-#         res = self.client().post('/api/questions', json=question)
-#         data = json.loads(res.data)
-
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)        
-#         self.assertTrue(data['created'] > 0)        
+def get_valid_movie_id():
+    movie = Movie.query.first()
+    return movie.format()['id']
 
 
-#     def test_400_create_question_with_missing_required_parameters(self):
-#         question = {
-#             #"question" : "Test1",
-#             "answer" : "Test1",
-#             "category" : "1",
-#             "difficulty" : "1"
-#         }
-
-#         res = self.client().post('/api/questions', json=question)
-#         data = json.loads(res.data)
-
-#         self.assertEqual(res.status_code, 400)
-#         self.assertEqual(data['success'], False)        
-#         self.assertEqual(data['message'], 'bad request')
-
-# # /* ------------------------------------------------- Questions - Delete ------------------------------------------------- */
-
-#     def test_delete_question(self):
-#         question_id = 5
-#         res = self.client().delete('/api/questions/{}'.format(question_id))
-#         data = json.loads(res.data)
-
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)        
-#         self.assertEqual(data['deleted'], question_id)                    
+def get_valid_actor_id():
+    actor = Actor.query.first()
+    return actor.format()['id']
 
 
-#     def test_404_delete_question(self):
-#         question_id = 1580
-#         res = self.client().delete('/api/questions/{}'.format(question_id))
-#         data = json.loads(res.data)
+class CapstoneTestCase(unittest.TestCase):
 
-#         self.assertEqual(res.status_code, 404)
-#         self.assertEqual(data['success'], False)        
-#         self.assertEqual(data['message'], 'resource not found')
+    def setUp(self):
+        self.client = app.test_client
 
-# # /* --------------------------------------------------- Categories - Get -------------------------------------------------- */ 
+    def tearDown(self):
+        """Executed after reach test"""
 
-#     def test_get_categories(self):
-#         res = self.client().get('/api/categories')
-#         data = json.loads(res.data)
+        pass
 
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)
-#         self.assertTrue(data['total_categories'])
-#         self.assertTrue(len(data['categories']))
-    
-    
-#     def test_get_questions_by_category(self):
-#         category_id = "1"
-#         category_type = "Science"
-#         res = self.client().get('/api/categories/{}/questions'.format(category_id))
-#         data = json.loads(res.data)
+# /* -------------- Movies - Get -------------- */
 
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)
-#         self.assertEqual(data['current_category'], category_type)
-#         self.assertTrue(data['total_questions'])   
+    def test_get_movies(self):
+        res = self.client().get('/movies',
+                                headers={'Authorization':
+                                         'Bearer {}'.format(PRODUCER_TOKEN)
+                                         })
+        data = json.loads(res.data)
 
-# # /* ------------------------------------------------------- Quizzes ------------------------------------------------------- */ 
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertTrue(data['total_movies'])
+        self.assertTrue(len(data['movies']))
 
-#     def test_quizzes(self):
-#         res = self.client().post('/api/quizzes', json={"previous_questions" : [], "quiz_category" : "2"})
-#         data = json.loads(res.data)
+    def test_401_get_movies_without_token(self):
+        res = self.client().get('/movies')
+        data = json.loads(res.data)
 
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)
-#         self.assertTrue(data['question'])        
-    
-    
-#     def test_quizzes_with_no_more_questions(self):
-#         res = self.client().post('/api/quizzes', json={"previous_questions" : [16, 17, 18, 19], "quiz_category" : "2"})
-#         data = json.loads(res.data)
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(data['code'], 'authorization_header_missing')
 
-#         self.assertEqual(res.status_code, 200)
-#         self.assertEqual(data['success'], True)
-#         self.assertFalse(data['question'])  
+# /* -------------- Movies - Post -------------- */
+
+    def test_post_movies(self):
+        res = self.client().post('/movies',
+                                 headers={'Authorization':
+                                          'Bearer {}'.format(PRODUCER_TOKEN)
+                                          },
+                                 json={'title': 'The Story of Unit Testing',
+                                       'release_date': '2020-01-01'
+                                       })
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertTrue(data['movie'])
+
+    def test_400_post_movies_with_missing_title(self):
+        res = self.client().post('/movies',
+                                 headers={'Authorization':
+                                          'Bearer {}'.format(PRODUCER_TOKEN)
+                                          },
+                                 json={'release_date': '2020-01-01'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(data['success'])
+
+# /* -------------- Movies - Patch -------------- */
+
+    def test_patch_movies(self):
+        movie_id = get_valid_movie_id()
+        res = self.client().patch('/movies/{}'.format(movie_id),
+                                  headers={'Authorization':
+                                           'Bearer {}'.format(PRODUCER_TOKEN)
+                                           },
+                                  json={'title':
+                                        'The Story of Unit Testing II',
+                                        'release_date': '2021-01-01'
+                                        })
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertTrue(data['movie'])
+
+    def test_404_patch_movies_with_wrong_id(self):
+        res = self.client().patch('/movies/99999',
+                                  headers={'Authorization':
+                                           'Bearer {}'.format(PRODUCER_TOKEN)
+                                           },
+                                  json={'title':
+                                        'The Story of Unit Testing II',
+                                        'release_date': '2021-01-01'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertFalse(data['success'])
+
+# /* -------------- Movies - Delete -------------- */
+
+    def test_delete_movies(self):
+        movie_id = get_valid_movie_id()
+        res = self.client().delete('/movies/{}'.format(movie_id),
+                                   headers={'Authorization':
+                                            'Bearer {}'.format(PRODUCER_TOKEN)
+                                            })
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['delete'], movie_id)
+
+    def test_404_delete_movies_with_wrong_id(self):
+        res = self.client().delete('/movies/999999',
+                                   headers={'Authorization':
+                                            'Bearer {}'.format(PRODUCER_TOKEN)
+                                            })
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertFalse(data['success'])
+
+# /* -------------- Actors - Get -------------- */
+
+    def test_get_actors(self):
+        res = self.client().get('/actors',
+                                headers={'Authorization':
+                                         'Bearer {}'.format(PRODUCER_TOKEN)
+                                         })
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertTrue(data['total_actors'])
+        self.assertTrue(len(data['actors']))
+
+    def test_401_get_actors_without_token(self):
+        res = self.client().get('/actors')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(data['code'], 'authorization_header_missing')
+
+# /* -------------- Actors - Post -------------- */
+
+    def test_post_actors(self):
+        res = self.client().post('/actors',
+                                 headers={'Authorization':
+                                          'Bearer {}'.format(PRODUCER_TOKEN)
+                                          },
+                                 json={'name': 'Denzel Washington',
+                                       'date_of_birth': '1954-12-28',
+                                       'gender': 'male'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertTrue(data['actor'])
+
+    def test_400_post_actors_with_missing_name(self):
+        res = self.client().post('/actors',
+                                 headers={'Authorization':
+                                          'Bearer {}'.format(PRODUCER_TOKEN)
+                                          },
+                                 json={'date_of_birth': '1954-12-28'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(data['success'])
+
+# /* -------------- Actors - Patch -------------- */
+
+    def test_patch_actors(self):
+        actor_id = get_valid_actor_id()
+        res = self.client().patch('/actors/{}'.format(actor_id),
+                                  headers={'Authorization':
+                                           'Bearer {}'.format(PRODUCER_TOKEN)},
+                                  json={'name': 'Denzel Washington II',
+                                        'date_of_birth': '1954-12-28',
+                                        'gender': 'male'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertTrue(data['actor'])
+
+    def test_404_patch_actors_with_wrong_id(self):
+        res = self.client().patch('/actors/99999',
+                                  headers={'Authorization':
+                                           'Bearer {}'.format(PRODUCER_TOKEN)},
+                                  json={'name': 'Denzel Washington II',
+                                        'date_of_birth': '1954-12-28',
+                                        'gender': 'male'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertFalse(data['success'])
+
+# /* -------------- Actors - Delete -------------- */
+
+    def test_delete_actors(self):
+        actor_id = get_valid_actor_id()
+        res = self.client().delete('/actors/{}'.format(actor_id),
+                                   headers={'Authorization':
+                                            'Bearer {}'.format(PRODUCER_TOKEN)
+                                            })
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['delete'], actor_id)
+
+    def test_404_delete_actors_with_wrong_id(self):
+        res = self.client().delete('/actors/999999',
+                                   headers={'Authorization':
+                                            'Bearer {}'.format(PRODUCER_TOKEN)
+                                            })
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertFalse(data['success'])
+
+# /* -------------- RBAC Testing - Casting Assistant -------------- */
+
+    def test_get_movies_by_assistant(self):
+        res = self.client().get('/movies',
+                                headers={'Authorization':
+                                         'Bearer {}'.format(ASSISTANT_TOKEN)})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertTrue(data['total_movies'])
+        self.assertTrue(len(data['movies']))
+
+    def test_403_patch_movies_by_assistant(self):
+        movie_id = get_valid_movie_id()
+        res = self.client().patch('/movies/{}'.format(movie_id),
+                                  headers={'Authorization':
+                                           'Bearer {}'.format(ASSISTANT_TOKEN)
+                                           },
+                                  json={'title':
+                                        'The Story of Unit Testing II',
+                                        'release_date': '2021-01-01'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 403)
+
+# /* -------------- RBAC Testing - Casting Director -------------- */
+
+    def test_post_movies_by_director(self):
+        res = self.client().post('/actors',
+                                 headers={'Authorization':
+                                          'Bearer {}'.format(DIRECTOR_TOKEN)},
+                                 json={'name': 'Denzel Washington',
+                                       'date_of_birth': '1954-12-28',
+                                       'gender': 'male'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertTrue(data['actor'])
+
+    def test_403_post_movies_by_director(self):
+        res = self.client().post('/movies',
+                                 headers={'Authorization':
+                                          'Bearer {}'.format(DIRECTOR_TOKEN)},
+                                 json={'title': 'The Story of Unit Testing',
+                                       'release_date': '2020-01-01'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 403)
 
 
-# # Make the tests conveniently executable
-# if __name__ == "__main__":
-#     unittest.main()
+# /* -------------- RBAC Testing - Executive Producer -------------- */
+# Executive Producer has been tested in all above tests.
+
+# Make the tests conveniently executable
+
+if __name__ == '__main__':
+    unittest.main()
