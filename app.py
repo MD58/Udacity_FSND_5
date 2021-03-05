@@ -119,7 +119,7 @@ class MovieActor(db.Model):
 #  ----------------------------------------------------------------
 
 @app.route('/movies', methods=['GET'])
-# @requires_auth('get:movies')
+@requires_auth('get:movies')
 def get_movies(payload):
     movies = Movie.query.all()
     movie_short = [movie.format() for movie in movies]
