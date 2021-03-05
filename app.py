@@ -19,11 +19,11 @@ from auth import AuthError, requires_auth
 # App Config.
 # ----------------------------------------------------------------------------#
 
-
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 
 # ----------------------------------------------------------------------------#
