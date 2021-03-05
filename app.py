@@ -72,8 +72,7 @@ class Actor(db.Model):
     # For age: I'm adding date of birth,
     # and returning the calculated age in the format method.
 
-    def __init__
-    (
+    def __init__(
         self,
         name,
         gender,
