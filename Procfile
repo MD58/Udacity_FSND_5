@@ -1,1 +1,1 @@
-web: gunicorn agency
+web: gunicorn app:app
