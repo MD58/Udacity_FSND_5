@@ -1,5 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------#
 # Imports
 # ----------------------------------------------------------------------------#
@@ -7,15 +5,11 @@
 import sys
 import json
 from flask import Flask, render_template, request, Response, flash, \
-    redirect, url_for, jsonify, abort
+    redirect, jsonify, abort, url_for
+
 from flask_moment import Moment
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, Column, String, Integer, create_engine, exc
-from flask_migrate import Migrate
-import datetime
-from datetime import date
-from flask_cors import CORS
 from auth import AuthError, requires_auth
+from model import setup_db, Movie, Actor
 
 # ----------------------------------------------------------------------------#
 # App Config.
@@ -24,95 +18,7 @@ from auth import AuthError, requires_auth
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-
-
-# ----------------------------------------------------------------------------#
-# Models.
-# ----------------------------------------------------------------------------#
-
-class Movie(db.Model):
-
-    __tablename__ = 'Movie'
-
-    id = Column(Integer, primary_key=True)
-    title = Column(String, nullable=False)
-    release_date = db.Column(db.DateTime(), nullable=True)
-
-    def __init__(self, title, release_date):
-        self.title = title
-        self.release_date = release_date
-
-    def insert(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def update(self):
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    def format(self):
-        return {'id': self.id, 'title': self.title,
-                'release_date': self.release_date}
-
-
-class Actor(db.Model):
-
-    __tablename__ = 'Actor'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    gender = Column(String, nullable=False)
-    date_of_birth = db.Column(db.DateTime(), nullable=False)
-
-    # For age: I'm adding date of birth,
-    # and returning the calculated age in the format method.
-
-    def __init__(
-        self,
-        name,
-        gender,
-        date_of_birth
-    ):
-        self.name = name
-        self.gender = gender
-        self.date_of_birth = date_of_birth
-
-    def insert(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def update(self):
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    def get_age(self):
-        today = date.today()
-        return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
-
-    def format(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'gender': self.gender,
-            'age': self.get_age(),
-            }
-
-
-class MovieActor(db.Model):
-
-    __tablename__ = 'MovieActor'
-
-    id = db.Column(db.Integer, primary_key=True)
-    movie_id = db.Column(db.Integer, db.ForeignKey('Movie.id'))
-    artist_id = db.Column(db.Integer, db.ForeignKey('Actor.id'))
+setup_db(app)
 
 
 # ----------------------------------------------------------------------------#
@@ -121,6 +27,11 @@ class MovieActor(db.Model):
 
 #  Movies
 #  ----------------------------------------------------------------
+
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({'message': 'Welcome to the Casting Agency API!'})
+
 
 @app.route('/movies', methods=['GET'])
 @requires_auth('get:movies')
@@ -144,7 +55,13 @@ def delete_movie(payload, id):
     if movie is None:
         abort(404)
 
-    movie.delete()
+    try:
+        movie.delete()
+    except Exception:
+        movie.rollback()
+        abort(500)
+    finally:
+        movie.close_session()
 
     return (jsonify({'success': True, 'delete': id}), 200)
 
@@ -153,14 +70,21 @@ def delete_movie(payload, id):
 @requires_auth('post:movies')
 def create_movie(payload):
     body = request.get_json()
-    title = body.get('title', None)
-    release_date = body.get('release_date', None)
+    title = body.get('title')
+    release_date = body.get('release_date')
 
     if title is None:
         abort(400)
 
     movie = Movie(title, release_date)
-    movie.insert()
+
+    try:
+        movie.insert()
+    except Exception:
+        movie.rollback()
+        abort(500)
+    finally:
+        movie.close_session()
 
     return (jsonify({'success': True, 'movie': movie.format()}), 200)
 
@@ -174,8 +98,8 @@ def update_movie(payload, id):
         abort(404)
 
     body = request.get_json()
-    title = body.get('title', None)
-    release_date = body.get('release_date', None)
+    title = body.get('title')
+    release_date = body.get('release_date')
 
     if title is None:
         abort(400)
@@ -183,7 +107,13 @@ def update_movie(payload, id):
     movie.title = title
     movie.release_date = release_date
 
-    movie.update()
+    try:
+        movie.update()
+    except Exception:
+        movie.rollback()
+        abort(500)
+    finally:
+        movie.close_session()
 
     return (jsonify({'success': True, 'movie': movie.format()}), 200)
 
@@ -213,7 +143,13 @@ def delete_actor(payload, id):
     if actor is None:
         abort(404)
 
-    actor.delete()
+    try:
+        actor.delete()
+    except Exception:
+        actor.rollback()
+        abort(500)
+    finally:
+        actor.close_session()
 
     return (jsonify({'success': True, 'delete': id}), 200)
 
@@ -222,15 +158,22 @@ def delete_actor(payload, id):
 @requires_auth('post:actors')
 def create_actor(payload):
     body = request.get_json()
-    name = body.get('name', None)
-    gender = body.get('gender', None)
-    date_of_birth = body.get('date_of_birth', None)
+    name = body.get('name')
+    gender = body.get('gender')
+    date_of_birth = body.get('date_of_birth')
 
     if name is None or gender is None or date_of_birth is None:
         abort(400)
 
     actor = Actor(name, gender, date_of_birth)
-    actor.insert()
+
+    try:
+        actor.insert()
+    except Exception:
+        actor.rollback()
+        abort(500)
+    finally:
+        actor.close_session()
 
     return (jsonify({'success': True, 'actor': actor.format()}), 200)
 
@@ -244,9 +187,9 @@ def update_actor(payload, id):
         abort(404)
 
     body = request.get_json()
-    name = body.get('name', None)
-    gender = body.get('gender', None)
-    date_of_birth = body.get('date_of_birth', None)
+    name = body.get('name')
+    gender = body.get('gender')
+    date_of_birth = body.get('date_of_birth')
 
     if name is None or gender is None or date_of_birth is None:
         abort(400)
@@ -255,7 +198,13 @@ def update_actor(payload, id):
     actor.gender = gender
     actor.date_of_birth = date_of_birth
 
-    actor.update()
+    try:
+        actor.update()
+    except Exception:
+        actor.rollback()
+        abort(500)
+    finally:
+        actor.close_session()
 
     return (jsonify({'success': True, 'actor': actor.format()}), 200)
 
@@ -264,6 +213,7 @@ def update_actor(payload, id):
 # ----------------------------------------------------------------------------#
 
 # Default port:
+
 
 if __name__ == '__main__':
     app.run()
